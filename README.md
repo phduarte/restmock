@@ -74,12 +74,12 @@ No caso aplicado ao propósito o que temos é uma api que se parece ao que verem
 
 ``` json
 {
-  "statusCode": 0,
+  "statusCode": 200,
   "httpMethod": "POST",
-  "pattern": "string",
-  "processingTime": 0,
-  "responseBody": "string",
-  "contentType": "string"
+  "pattern": "/api/v1/test",
+  "processingTime": 1000,
+  "responseBody": "hello world",
+  "contentType": "application/text"
 }
 ```
 
@@ -92,8 +92,28 @@ Busca os dados de um mock de endpoint
 ### DELETE /mocks/{guid}
 Exclui um mock de endpoint existente.
 
-## Case
-Criação de um endpoint que simula um comportamento de erro de timeout para avaliarmos como o componente chamador irá lidar com esse comportamento anormal.
+## Casos de uso
+### Criando um endpoint de teste
+
+1. Execute o projeto
+2. Faça uma chamada http do tipo POST para o endpoint `/mocks` passando o seguinte corpo de requisição.
+
+``` json
+{
+  "statusCode": 200,
+  "httpMethod": "POST",
+  "pattern": "/api/v1/test",
+  "processingTime": 1000,
+  "responseBody": "hello world",
+  "contentType": "application/text"
+}
+```
+3. Através do postman, realize uma chamada http do tipo POST para o endpoint `https://localhost:7253/api/v1/test`.
+
+### Criando um endpoint defeituoso
+
+1. Execute o projeto
+2. Faça uma chamada http do tipo POST para o endpoint `/mocks` passando o seguinte corpo de requisição.
 
 POST /mocks
 ``` json
@@ -107,7 +127,9 @@ POST /mocks
   }
 }
 ```
+3. Através do postman, realize uma chamada http do tipo GET para o endpoint `https://localhost:7253/timeout`.
 
+*Criação de um endpoint que simula um comportamento de erro de timeout para avaliarmos como o componente chamador irá lidar com esse comportamento anormal.*
 
 ## Tecnologias
 - Dotnet Core 7 
