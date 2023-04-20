@@ -96,7 +96,7 @@ Exclui um mock de endpoint existente.
 ### Criando um endpoint de teste
 
 1. Execute o projeto
-2. Faça uma chamada http do tipo POST para o endpoint `/mocks` passando o seguinte corpo de requisição.
+2. Faça uma chamada http do tipo POST em https://localhost:7253/mocks passando o seguinte corpo de requisição.
 
 ``` json
 {
@@ -113,9 +113,8 @@ Exclui um mock de endpoint existente.
 ### Criando um endpoint defeituoso
 
 1. Execute o projeto
-2. Faça uma chamada http do tipo POST para o endpoint `/mocks` passando o seguinte corpo de requisição.
+2. Faça uma chamada http do tipo POST https://localhost:7253/mocks passando o seguinte corpo de requisição.
 
-POST /mocks
 ``` json
 {
   "httpMethod": "GET",
@@ -130,6 +129,15 @@ POST /mocks
 3. Através do postman, realize uma chamada http do tipo GET para o endpoint `https://localhost:7253/timeout`.
 
 *Criação de um endpoint que simula um comportamento de erro de timeout para avaliarmos como o componente chamador irá lidar com esse comportamento anormal.*
+
+### Liste todos os endpoints mockados
+
+1. Faça uma requisição GET em https://localhost:7253/mocks
+
+### Exclua um endpoint mocado
+
+1. Se não tiver o ID do endpoint que deseja excluir, faça uma requisição GET em https://localhost:7253/mocks para localizá-lo.
+2. Em posso do ID do endpoint a ser excluído, faça uma requisição DELETE em https://localhost:7253/mocks/{guid} onde `{guid}` é o id a ser excluído
 
 ## Tecnologias
 - Dotnet Core 7 

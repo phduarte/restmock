@@ -2,11 +2,23 @@
 
 public class EndpointModel
 {
+    int processtime = 0;
+
     public Guid Id { get; set; } = Guid.NewGuid();
     public int StatusCode { get; set; } = 200;
     public string HttpMethod { get; init; } = "GET";
     public string Pattern { get; set; }
-    public int ProcessingTime { get; set; }
+    public int ProcessingTime
+    {
+        get
+        {
+            return processtime;
+        }
+        set
+        {
+            processtime = Math.Max(0, value);
+        }
+    }
     public object? ResponseBody { get; set; }
     public string ContentType { get; set; } = "application/json";
 
