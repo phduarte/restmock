@@ -1,145 +1,422 @@
-# restmock
+# RestMock
+
 [![.NET](https://github.com/phduarte/restmock/actions/workflows/dotnet.yml/badge.svg)](https://github.com/phduarte/restmock/actions/workflows/dotnet.yml)
 
-Api web para criação de endpoints mockados que podem ser úteis por exemplo em testes de integração, estresse ou caos, debugging, etc.
+An HTTP server for creating mocked endpoints. Useful for integration tests, stress tests, chaos simulation, debugging, and decoupled development.
 
-## Glossário
+> Also available in [Português (pt-BR)](README.pt-BR.md).
 
-### Endpoint
-É o endereço de localização de um recurso web assim como as características de acesso, como tipo de método http e conteúdo de resposta.
+## Table of Contents
 
-### Mock
-A tradução mais adequada é "maquete", basicamente a referência que podemos ter é que é uma cópia não funcional ou um esboço do que se espera ter. 
-No caso aplicado ao propósito o que temos é uma api que se parece ao que veremos porém, sem lógica, apenas os endereços e métodos http.
+- [Concepts](#concepts)
+- [Quick Start](#quick-start)
+- [Visual Interface (Blazor UI)](#visual-interface-blazor-ui)
+- [REST API](#rest-api)
+- [Pattern Matching Rules](#pattern-matching-rules)
+- [Response Body Variables](#response-body-variables)
+- [Use Cases](#use-cases)
+- [Technologies](#technologies)
 
-## Usage
+---
 
-### Domínio
+## Concepts
 
-<table>
-<tr>
- <th>campo</th>
- <th>tipo</th>
- <th>descrição</th>
- <th>exemplo</th>
-</tr>
-<tr>
- <td>id</td>
- <td>uuid</td>
- <td>Identificador único do endpoint. É criado automaticamente, não precisa ser informado.</td>
- <td>3fa85f64-5717-4562-b3fc-2c963f66afa6</td>
-</tr>
+**Mock** — A non-functional copy of a real endpoint. Returns configured responses without any business logic.
 
-<tr>
- <td>statusCode</td>
- <td>int</td>
- <td>Statuscode que deseja receber ao acionar esse endpoint</td>
- <td>200, 400, 404, 500</td>
-</tr>
-<tr>
- <td>httpMethod</td>
- <td>string</td>
- <td>Método http. Ex: GET, POST, PUT, DELETE</td>
- <td>GET</td>
-</tr>
-<tr>
- <td>pattern</td>
- <td>string</td>
- <td>Enedereço sem o endereço do servidor (baseurl). Pode ser usado campos variáveis dentro de colchetes.</td>
- <td>/v1/movies/fiction?year=[int]&rateMin=[int]</td>
-</tr>
-<tr>
- <td>processingTime</td>
- <td>int</td>
- <td>Tempo de execução do endpoint ao ser acionado. Duração em milisegundos. Campo opcional.</td>
- <td>1000</td>
-</tr>
-<tr>
- <td>responseBody</td>
- <td>object</td>
- <td>Resposta que o endpoint deve dar. Normalmente é um objeto Json.</td>
- <td>
- { "message": "hello world!" }
- </td>
-</tr>
-<tr>
- <td>contentType</td>
- <td>string</td>
- <td>Tipo de conteúdo. Deve ser um tipo compatível com os padrões <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/MIME_types/Common_types" target="_blank">MIME types</a>.</td>
- <td>application/json</td>
-</tr>
-</table>
+**Pattern** — The address of the mocked endpoint (without the host), which may contain wildcards and validation types.
 
-### POST /mocks
+**Processing time** — An artificial delay applied before responding, useful for simulating latency or timeout.
 
-``` json
-{
-  "statusCode": 200,
-  "httpMethod": "POST",
-  "pattern": "/api/v1/test",
-  "processingTime": 1000,
-  "responseBody": "hello world",
-  "contentType": "application/text"
-}
+---
+
+## Quick Start
+
+```bash
+# clone and run
+git clone https://github.com/phduarte/restmock
+cd restmock
+run.bat
 ```
 
-### GET /mocks
-Busca todos os mocks existentes
+`run.bat` starts the server and automatically opens the browser at `http://localhost:5087`.
 
-### GET /mocks/{guid}
-Busca os dados de um mock de endpoint
+Available URLs after starting:
 
-### DELETE /mocks/{guid}
-Exclui um mock de endpoint existente.
+| Address | Description |
+| --- | --- |
+| `http://localhost:5087/` | Visual interface (Blazor UI) |
+| `http://localhost:5087/client` | Visual interface (alias) |
+| `http://localhost:5087/swagger` | API documentation (development mode) |
 
-## Casos de uso
-### Criando um endpoint de teste
+> **Note:** Data is stored in memory only. All mocks are lost when the server restarts.
 
-1. Execute o projeto
-2. Faça uma chamada http do tipo POST em https://localhost:7253/mocks passando o seguinte corpo de requisição.
+---
 
-``` json
+## Visual Interface (Blazor UI)
+
+Go to `http://localhost:5087` to manage mocks in the browser.
+
+### Layout
+
+The screen is split into two columns:
+
+- **Left** — form for creating new mocks
+- **Right** — list of active mocks with detail and delete options
+
+The list updates automatically in real time via Blazor Server (SignalR).
+
+### Creation Form
+
+| Field | Type | Default | Description |
+| --- | --- | --- | --- |
+| HTTP Method | dropdown | GET | GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS |
+| Pattern (URL) | text | — | Endpoint address. Required. Supports wildcards (see [Pattern Matching Rules](#pattern-matching-rules)) |
+| Description | text | — | Free text to document the purpose of the mock. Optional. |
+| Status Code | number | 200 | HTTP response code. Between 100 and 599 |
+| Processing time (ms) | number | 0 | Delay in milliseconds before responding |
+| Content-Type | dropdown | application/json | Response MIME type |
+| Response body | textarea | — | Response body. Optional. Supports variables (see [Response Body Variables](#response-body-variables)) |
+
+**Buttons:**
+
+- **Create mock** — validates and saves the endpoint
+- **{ } Format** — formats the response body JSON
+- **Clear** — resets the form to default values
+
+**Validations:**
+
+- Pattern is required
+- Status Code must be between 100 and 599
+
+### Active Mocks List
+
+Displays all registered endpoints in a table with columns: Method, Pattern, Status, Content-Type, Delay, and Actions.
+
+| Button | Action |
+| --- | --- |
+| **▸** | Expands mock details (ID, description, and response body) |
+| **✎** | Loads the mock into the form for editing |
+| **<>** | Copies the equivalent `curl` command to the clipboard |
+| **✕** | Deletes the mock (asks for confirmation first) |
+
+---
+
+## REST API
+
+All management endpoints are under the `/mocks` prefix.
+
+### Model
+
+| Field | Type | Default | Description |
+| --- | --- | --- | --- |
+| `id` | uuid | auto | Unique identifier. Auto-generated. |
+| `httpMethod` | string | `"GET"` | HTTP method: GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS |
+| `pattern` | string | — | Mocked endpoint address (without host) |
+| `statusCode` | int | `200` | HTTP response code (100–599) |
+| `processingTime` | int | `0` | Delay in milliseconds (minimum 0) |
+| `contentType` | string | `"application/json"` | Response MIME type |
+| `responseBody` | object | `null` | Response body. Can be a string, JSON, or null |
+| `description` | string | `null` | Optional mock description. Purely informational. |
+
+### `POST /mocks` — create mock
+
+```http
+POST /mocks
+Content-Type: application/json
+
 {
-  "statusCode": 200,
   "httpMethod": "POST",
-  "pattern": "/api/v1/test",
-  "processingTime": 1000,
-  "responseBody": "hello world",
-  "contentType": "application/text"
-}
-```
-3. Através do postman, realize uma chamada http do tipo POST para o endpoint `https://localhost:7253/api/v1/test`.
-
-### Criando um endpoint defeituoso
-
-1. Execute o projeto
-2. Faça uma chamada http do tipo POST https://localhost:7253/mocks passando o seguinte corpo de requisição.
-
-``` json
-{
-  "httpMethod": "GET",
-  "statuscode": 504,
-  "pattern": "/timeout",
-  "processingTime": 60000,
+  "pattern": "/api/v1/users",
+  "statusCode": 201,
+  "processingTime": 0,
+  "contentType": "application/json",
   "responseBody": {
-	"statuscode": 504
+    "id": "{{uuid}}",
+    "name": "{{$.name}}"
   }
 }
 ```
-3. Através do postman, realize uma chamada http do tipo GET para o endpoint `https://localhost:7253/timeout`.
 
-*Criação de um endpoint que simula um comportamento de erro de timeout para avaliarmos como o componente chamador irá lidar com esse comportamento anormal.*
+**Response:** `201 Created` with the created mock in the body and the `Location: /mocks/{id}` header.
 
-### Liste todos os endpoints mockados
+### `GET /mocks` — list all
 
-1. Faça uma requisição GET em https://localhost:7253/mocks
+```http
+GET /mocks
+```
 
-### Exclua um endpoint mocado
+**Response:** `200 OK` with an array of all mocks.
 
-1. Se não tiver o ID do endpoint que deseja excluir, faça uma requisição GET em https://localhost:7253/mocks para localizá-lo.
-2. Em posso do ID do endpoint a ser excluído, faça uma requisição DELETE em https://localhost:7253/mocks/{guid} onde `{guid}` é o id a ser excluído
+### `GET /mocks/{id}` — get by ID
 
-## Tecnologias
-- Dotnet Core 7 
-- Swagger
-- Visual Studio 2022
+```http
+GET /mocks/3fa85f64-5717-4562-b3fc-2c963f66afa6
+```
+
+**Response:** `200 OK` with the mock, or `404 Not Found`.
+
+### `PUT /mocks/{id}` — update mock
+
+```http
+PUT /mocks/3fa85f64-5717-4562-b3fc-2c963f66afa6
+Content-Type: application/json
+
+{
+  "httpMethod": "GET",
+  "pattern": "/api/users",
+  "statusCode": 200,
+  "processingTime": 0,
+  "contentType": "application/json",
+  "description": "List all users",
+  "responseBody": { "items": [] }
+}
+```
+
+**Response:** `200 OK` with the updated mock, or `404 Not Found`.
+
+### `DELETE /mocks/{id}` — delete
+
+```http
+DELETE /mocks/3fa85f64-5717-4562-b3fc-2c963f66afa6
+```
+
+**Response:** `204 No Content`, or `404 Not Found`.
+
+---
+
+## Pattern Matching Rules
+
+Matching a request against a mock checks, in this order:
+
+1. **HTTP method** — must be equal (case-insensitive)
+2. **Path** — must match the pattern (case-insensitive)
+3. **Query string** — if the pattern has a query, all declared parameters must be present in the request with the correct types
+
+Extra query string parameters in the request are ignored.
+
+### Path Wildcards
+
+| Syntax | Matches | Pattern example | URL example |
+| --- | --- | --- | --- |
+| `*` | Any value in a segment | `/v*/users` | `/v1/users`, `/v2/users` |
+| `{guid}` or `{uuid}` | UUID/GUID | `/users/{guid}` | `/users/3fa85f64-...` |
+| `{int}`, `{long}`, `{number}` | Integer (positive or negative) | `/items/{int}` | `/items/42`, `/items/-1` |
+| `{date}` | Date in `YYYY-MM-DD` format | `/events/{date}` | `/events/2024-12-31` |
+| `{datetime}` | ISO 8601 date/time | `/logs/{datetime}` | `/logs/2024-12-31T10:00:00Z` |
+| `{name}` | Any non-empty segment (any name) | `/users/{id}` | `/users/abc`, `/users/123` |
+| `{type?}` | `?` suffix makes the segment optional | `/users/{guid?}` | `/users` or `/users/3fa85f64-...` |
+
+### Query String Validation
+
+Use the `[type]` syntax in query parameter values:
+
+```text
+/v1/movies?year=[int]&genre=[string]&id=[guid]
+```
+
+| Type | Validates |
+| --- | --- |
+| `[guid]` | Valid UUID/GUID |
+| `[int]` | Integer number |
+| `[date]` or `[datetime]` | Parseable date |
+| `[string]` | Any non-empty value |
+
+**Examples:**
+
+```text
+/api/orders                          → GET /api/orders
+/api/orders/{guid}                   → GET /api/orders/3fa85f64-5717-4562-b3fc-2c963f66afa6
+/v*/products/{int}                   → GET /v1/products/10, GET /v2/products/99
+/reports/{date}                      → GET /reports/2024-01-15
+/search?q=[string]&page=[int]        → GET /search?q=hello&page=2
+/users/{uuid?}                       → GET /users  or  GET /users/3fa85f64-...
+```
+
+---
+
+## Response Body Variables
+
+The response body supports variable substitution using the `{{expression}}` syntax. Values are resolved on every request.
+
+| Expression | Result |
+| --- | --- |
+| `{{uuid}}` | Randomly generated UUID |
+| `{{$.property}}` | Value of the `property` field from the request body (JSON) |
+| `{{$.user.address.city}}` | Supports nested paths |
+| `{{$.items[0]}}` | Supports array index access |
+
+**Rules:**
+
+- If the JSONPath property does not exist in the body → replaced with an empty string
+- If the request body is absent or not valid JSON → all `{{$.x}}` expressions become empty strings
+- Unrecognized expressions → kept literally in the output
+
+**Example:**
+
+Received request body:
+
+```json
+{ "name": "Alice", "role": "admin" }
+```
+
+Configured response body:
+
+```json
+{
+  "id": "{{uuid}}",
+  "name": "{{$.name}}",
+  "role": "{{$.role}}",
+  "department": "{{$.department}}"
+}
+```
+
+Returned response:
+
+```json
+{
+  "id": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+  "name": "Alice",
+  "role": "admin",
+  "department": ""
+}
+```
+
+---
+
+## Use Cases
+
+### Simulate resource creation with a dynamic ID
+
+Create the mock via API:
+
+```json
+POST /mocks
+{
+  "httpMethod": "POST",
+  "pattern": "/api/users",
+  "statusCode": 201,
+  "contentType": "application/json",
+  "responseBody": {
+    "id": "{{uuid}}",
+    "name": "{{$.name}}",
+    "email": "{{$.email}}"
+  }
+}
+```
+
+Call the mock:
+
+```http
+POST /api/users
+Content-Type: application/json
+
+{ "name": "Alice", "email": "alice@example.com" }
+```
+
+Response:
+
+```json
+{
+  "id": "a3f2c1d4-...",
+  "name": "Alice",
+  "email": "alice@example.com"
+}
+```
+
+### Simulate timeout / slow endpoint
+
+```json
+POST /mocks
+{
+  "httpMethod": "GET",
+  "pattern": "/api/reports",
+  "statusCode": 504,
+  "processingTime": 60000,
+  "responseBody": { "error": "Gateway Timeout" }
+}
+```
+
+### Simulate authentication error
+
+```json
+POST /mocks
+{
+  "httpMethod": "GET",
+  "pattern": "/api/protected",
+  "statusCode": 401,
+  "responseBody": { "error": "Unauthorized" }
+}
+```
+
+### Endpoint with typed URL parameter
+
+```json
+POST /mocks
+{
+  "httpMethod": "GET",
+  "pattern": "/api/orders/{guid}",
+  "statusCode": 200,
+  "responseBody": { "id": "{{uuid}}", "status": "shipped" }
+}
+```
+
+Accepts: `GET /api/orders/3fa85f64-5717-4562-b3fc-2c963f66afa6`
+
+Rejects: `GET /api/orders/abc` (not a valid UUID)
+
+### Endpoint with typed query string
+
+```json
+POST /mocks
+{
+  "httpMethod": "GET",
+  "pattern": "/api/products?category=[string]&page=[int]",
+  "statusCode": 200,
+  "responseBody": { "items": [] }
+}
+```
+
+Accepts: `GET /api/products?category=electronics&page=1`
+
+Rejects: `GET /api/products?category=electronics&page=abc` (page is not an integer)
+
+### Wildcard version endpoint
+
+```json
+POST /mocks
+{
+  "httpMethod": "GET",
+  "pattern": "/v*/health",
+  "statusCode": 200,
+  "responseBody": { "status": "ok" }
+}
+```
+
+Accepts: `/v1/health`, `/v2/health`, `/v10/health`
+
+---
+
+## Reserved Routes
+
+The following routes are reserved by the system and **cannot be mocked**:
+
+| Prefix | Usage |
+| --- | --- |
+| `/client` | Blazor Client interface |
+| `/mocks` | Management API |
+| `/swagger` | Swagger documentation |
+| `/_blazor` | Blazor SignalR hub |
+| `/_framework` | Blazor framework files |
+| `/_content` | Component static content |
+| `/css` | Stylesheets |
+| `/js` | Scripts |
+| `/favicon` | Site icon |
+
+---
+
+## Technologies
+
+- .NET 9 / ASP.NET Core
+- Blazor Server (visual interface)
+- Newtonsoft.Json (JSONPath in response templating)
+- Swagger / Swashbuckle 10.x (API documentation)

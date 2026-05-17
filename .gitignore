@@ -5,3 +5,5 @@
 .vs/*
 */bin/*
 */obj/*
+RestMock/mocks.json
+.claude/settings.local.json

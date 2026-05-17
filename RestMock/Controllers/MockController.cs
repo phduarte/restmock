@@ -42,6 +42,21 @@ namespace RestMock.Controllers
             return Ok(EndpointCollection.GetAll());
         }
 
+        [HttpPut]
+        [Route("{guid}")]
+        public IActionResult Update(Guid guid, EndpointModel request)
+        {
+            try
+            {
+                EndpointCollection.Update(guid, request);
+                return Ok(EndpointCollection.GetById(guid));
+            }
+            catch (ArgumentException)
+            {
+                return NotFound();
+            }
+        }
+
         [HttpDelete]
         [Route("{guid}")]
         public IActionResult Remove(Guid guid)
