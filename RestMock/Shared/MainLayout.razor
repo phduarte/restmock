@@ -1,0 +1,23 @@
+@inherits LayoutComponentBase
+
+<div class="app">
+    <header class="topbar">
+        <div class="brand">
+            <span class="brand-mark">⚡</span>
+            <span class="brand-title">RestMock</span>
+            <span class="brand-sub">Mock Client</span>
+        </div>
+        <nav class="topnav">
+            <NavLink class="navlink" href="/client" Match="NavLinkMatch.All">Mocks</NavLink>
+            <a class="navlink" href="/swagger" target="_blank">Swagger</a>
+        </nav>
+    </header>
+
+    <main class="content">
+        @Body
+    </main>
+
+    <footer class="footer">
+        <small>RestMock · gerenciador de endpoints simulados</small>
+    </footer>
+</div>

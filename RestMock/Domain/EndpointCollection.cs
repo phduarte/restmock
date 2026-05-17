@@ -24,6 +24,14 @@ public class EndpointCollection
         _endpoints.Remove(endpoint);
     }
 
+    public static void Update(Guid id, EndpointModel updated)
+    {
+        var index = _endpoints.FindIndex(e => e.Id == id);
+        if (index < 0) throw new ArgumentException(nameof(id));
+        updated.Id = id;
+        _endpoints[index] = updated;
+    }
+
     public static EndpointModel? GetById(Guid guid)
     {
         return _endpoints.FirstOrDefault(e => e.Id.Equals(guid));
@@ -32,5 +40,10 @@ public class EndpointCollection
     public static IEnumerable<EndpointModel> GetAll()
     {
         return _endpoints;
+    }
+
+    internal static void Clear()
+    {
+        _endpoints.Clear();
     }
 }
